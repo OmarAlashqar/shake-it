@@ -99,8 +99,11 @@ export interface FitResult {
 }
 
 /**
- * Fit the source into a centered content box that leaves enough headroom for
- * the motion so the image doesn't clip against the edges of the frame.
+ * Fit the source into the largest centered box that still keeps the moving
+ * image inside the frame. The headroom is derived from the actual worst-case
+ * transform for the chosen style/intensity (translation, rotation, scale)
+ * rather than a fixed margin, so the image fills as much of the frame as the
+ * motion allows instead of floating in empty space.
  */
 export function fitContent(
   srcW: number,
@@ -108,9 +111,42 @@ export function fitContent(
   settings: ShakeSettings,
 ): FitResult {
   const { size, intensity, style } = settings;
-  const marginFraction =
-    style === "zoom" ? 0.08 + intensity * 0.28 : 0.1 + intensity * 0.24;
-  const box = size * (1 - marginFraction * 2);
+  // Keep these in step with computeTransforms.
+  const ampFrac = intensity * 0.16; // peak per-axis shift, as a fraction of size
+  const maxAngle = intensity * 0.5; // radians
+  const zoomAmt = intensity * 0.35;
+
+  let translateFrac = 0;
+  let angle = 0;
+  let scale = 1;
+  switch (style) {
+    case "shake":
+      translateFrac = ampFrac;
+      break;
+    case "rotate":
+      translateFrac = ampFrac * 0.15;
+      angle = maxAngle;
+      break;
+    case "zoom":
+      scale = 1 + zoomAmt;
+      break;
+    case "chaos":
+      translateFrac = ampFrac;
+      angle = maxAngle;
+      scale = 1 + zoomAmt * 0.5;
+      break;
+  }
+
+  // A box of side B, scaled and rotated, has a half-extent of
+  // scale * (B/2) * (|cos| + |sin|); add the translation, keep it within size/2.
+  const rotFactor = Math.abs(Math.cos(angle)) + Math.abs(Math.sin(angle));
+  const safety = 0.96;
+  const boxFrac = Math.max(
+    0.3,
+    Math.min(1, ((1 - 2 * translateFrac) / (scale * rotFactor)) * safety),
+  );
+
+  const box = size * boxFrac;
   const ratio = Math.min(box / srcW, box / srcH);
   return { drawW: srcW * ratio, drawH: srcH * ratio };
 }
