@@ -8,16 +8,12 @@ export default function Home() {
           shake&nbsp;it <span className="inline-block">🫨</span>
         </h1>
         <p className="mx-auto mt-3 max-w-md text-balance text-white/60">
-          Turn any image into an intense, shaking animated GIF — perfect for
-          Slack emoji. Upload, tweak, download. All in your browser.
+          Make your favorite reaction come to life! May the chaos bring you
+          unfettered joy.
         </p>
       </header>
 
       <ShakeStudio />
-
-      <footer className="mt-12 text-center text-sm text-white/40">
-        Nothing leaves your device — every frame is rendered locally.
-      </footer>
     </main>
   );
 }
